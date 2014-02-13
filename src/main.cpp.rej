@@ -1,0 +1,13 @@
+--- src/main.cpp
++++ src/main.cpp
+@@ -185,6 +193,10 @@
+ 
+ 			if (!Spark_Communication_Loop())
+ 			{
++				/*
++				 * DWD - signal bad karma by driving D0 low.
++				 */
++/*DWD*/				digitalWrite(0, 0);
+ 				if (LED_RGB_OVERRIDE)
+ 				{
+ 					LED_Signaling_Stop();
