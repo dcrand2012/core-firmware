@@ -405,6 +405,8 @@ void SPARK_WLAN_Setup(void (*presence_announcement_callback)(void))
 
 void SPARK_WLAN_Loop(void)
 {
+	digitalWrite(D1, HIGH);
+	//NVIC_DisableIRQ(TIM2_IRQn);
 	if(SPARK_WLAN_RESET || SPARK_WLAN_SLEEP)
 	{
 		if(SPARK_WLAN_STARTED)
@@ -498,12 +500,15 @@ void SPARK_WLAN_Loop(void)
 			LED_SetRGBColor(RGB_COLOR_GREEN);
 			LED_On(LED_RGB);
 		}
-
+		//NVIC_EnableIRQ(TIM2_IRQn);
+		digitalWrite(D1, LOW);
 		return;
 	}
 
 	if(TimingSparkConnectDelay != 0)
 	{
+		//NVIC_EnableIRQ(TIM2_IRQn);
+		digitalWrite(D1, LOW);
 		return;
 	}
 
@@ -540,7 +545,11 @@ void SPARK_WLAN_Loop(void)
 		if(Spark_Connect() < 0)
 		{
 			if(SPARK_WLAN_RESET)
+			{
+				//NVIC_EnableIRQ(TIM2_IRQn);
+				digitalWrite(D1, LOW);
 				return;
+			}
 
 			if(Internet_Test() < 0)
 			{
@@ -622,4 +631,7 @@ void SPARK_WLAN_Loop(void)
 			}
 		}
 	}
+
+	digitalWrite(D1, LOW);
+	//NVIC_EnableIRQ(TIM2_IRQn);
 }

@@ -105,6 +105,9 @@ void USB_USART_Send_Data(uint8_t Data);
 void Handle_USBAsynchXfer(void);
 void Get_SerialNum(void);
 
+void TIM2_Configuration(void);
+void TIM2_IRQHandler(void);
+
 }
 
 #endif /* __MAIN_H */

@@ -26,6 +26,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "spark_utilities.h"
+
+#include "application.h"
+
 extern "C" {
 #include "usb_conf.h"
 #include "usb_lib.h"
@@ -65,6 +68,8 @@ uint8_t  USB_Tx_State = 0;
 uint8_t  USB_Rx_State = 0;
 
 uint32_t USB_USART_BaudRate = 9600;
+
+uint8_t state = 0;
 
 static void IntToUnicode (uint32_t value , uint8_t *pbuf , uint8_t len);
 
@@ -145,11 +150,23 @@ int main(void)
 	/* Connect to Spark Cloud by default */
 	SPARK_SOCKET_HANDSHAKE = 1;
 
+	pinMode(D0,OUTPUT);
+	pinMode(D1,OUTPUT);
+	pinMode(D2,OUTPUT);
+
+while(!SPARK_HANDSHAKE_COMPLETED)
+{
+	SPARK_WLAN_Loop();
+	userEventSend();
+}
+
+TIM2_Configuration();
+
 	/* Main loop */
 	while (1)
 	{
 #ifdef SPARK_WLAN_ENABLE
-		SPARK_WLAN_Loop();
+		//SPARK_WLAN_Loop();
 #endif
 
 #ifdef SPARK_WIRING_ENABLE
@@ -190,6 +207,9 @@ int main(void)
  *******************************************************************************/
 void Timing_Decrement(void)
 {
+
+	digitalWrite(D0, HIGH);
+
 	if (TimingDelay != 0x00)
 	{
 		TimingDelay--;
@@ -360,6 +380,8 @@ void Timing_Decrement(void)
 	{
 		Spark_ConnectAbort_WLANReset();
 	}
+
+	digitalWrite(D0, LOW);
 }
 
 /*******************************************************************************
@@ -578,3 +600,49 @@ void assert_failed(uint8_t* file, uint32_t line)
 	}
 }
 #endif
+
+void TIM2_Configuration(void)
+{
+
+   	NVIC_InitTypeDef NVIC_InitStructure;
+
+   	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+
+   	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+ 
+  	TIM_DeInit(TIM2);
+ 
+  TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
+ 
+  /* Time base configuration */
+  TIM_TimeBaseStructure.TIM_Prescaler = 36000; //36MHz/36000 = 1KHz
+  TIM_TimeBaseStructure.TIM_Period = 100-1; // 100mS
+  TIM_TimeBaseStructure.TIM_ClockDivision = 0x0000;
+  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+  TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
+ 
+  /* Enable TIM2 Update Interrupt */
+  TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
+ 
+  /* Enable TIM2 */
+  TIM_Cmd(TIM2,ENABLE);
+
+  NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 14;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
+  
+}
+
+void TIM2_IRQHandler(void)
+{
+	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
+	{
+		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+		state = !state;
+		digitalWrite(D2,state);
+		SPARK_WLAN_Loop();
+	}
+  	
+}
